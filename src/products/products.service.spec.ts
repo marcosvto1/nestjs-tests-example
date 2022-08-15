@@ -13,18 +13,25 @@ describe('ProductsService', () => {
   let repository: MockProxy<ProductRepository>;
   let categoryService: MockProxy<CategoriesService>;
 
-  beforeEach(() => {
+  beforeAll(() => {
     repository = mock<ProductRepository>();
     categoryService = mock<CategoriesService>();
+  });
 
+  beforeEach(() => {
     sut = new ProductsService(repository, categoryService);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('create', () => {
     let dtoRequest: CreateProductDto;
     let productDoc: MockProxy<ProductDocument>;
 
-    beforeEach(() => {
+    beforeAll(() => {
       dtoRequest = new CreateProductDto();
       dtoRequest.name = 'any_name';
       dtoRequest.categoryId = 'any_category_id';
@@ -68,9 +75,13 @@ describe('ProductsService', () => {
     });
 
     it('should throw exception if CategoryService.findOne returns undefined', () => {
+      categoryService.findOne.mockResolvedValueOnce(undefined);
+
       const promise = sut.create(dtoRequest);
 
-      expect(promise).rejects.toEqual(new BadRequestException('name invalid'));
+      expect(promise).rejects.toEqual(
+        new BadRequestException('category not found'),
+      );
     });
 
     it('should call productRepo.save with correct params', async () => {
@@ -85,7 +96,7 @@ describe('ProductsService', () => {
 
       expect(res).toBeInstanceOf(CreateProductResDto);
       expect(res).toMatchObject({
-        name: 'sdsad',
+        name: productDoc.name,
         _id: productDoc._id,
       });
     });
